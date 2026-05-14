@@ -1,6 +1,6 @@
 import sys
-import pkg_resources
 import importlib
+import importlib.metadata
 from requests import Session
 from bs4 import BeautifulSoup
 
@@ -31,8 +31,8 @@ class PIPPackageManager(PackageManager):
         """
 
         p = Package(self)
-        p.id = f'{dist.key}=={dist.version}'
-        p.name = dist.key
+        p.id = f'{dist.name}=={dist.version}'
+        p.name = dist.name
         p.version = dist.version
         p.description = None
         p.is_installed = True
@@ -55,9 +55,8 @@ class PIPPackageManager(PackageManager):
         p.version = dist['version']
         p.description = dist['summary']
         p.created = dist['created']
-        importlib.reload(pkg_resources)
-        for d in pkg_resources.working_set:
-            if d.key == p.name:
+        for d in importlib.metadata.distributions():
+            if d.name == p.name:
                 p.is_installed = True
                 p.installed_version = d.version
                 p.is_upgradeable = p.installed_version != p.version
@@ -80,7 +79,10 @@ class PIPPackageManager(PackageManager):
         packages = []
         snippets = []
         for page in range(1,3):
-            params = {'q': query, 'page': page}
+            params = {
+                'q': query,
+                'page': page,
+            }
             result = session.get(api_url, params=params)
 
             soup = BeautifulSoup(result.text, 'html.parser')
@@ -118,8 +120,8 @@ class PIPPackageManager(PackageManager):
         :rtype: Package object
         """
 
-        for d in pkg_resources.working_set:
-            if d.key == _id.split('==')[0]:
+        for d in importlib.metadata.distributions():
+            if d.name == _id.split('==')[0]:
                 return self.__make_package_pipdist(d)
 
     def update_lists(self, progress_callback):
